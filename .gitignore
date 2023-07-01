@@ -1,2 +1,3 @@
 # ignore shared dir
-openwrt/openwrt
+build/*
+!build/README.md
