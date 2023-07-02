@@ -49,13 +49,13 @@ main() {
 		make -j$(($(nproc) + 1))
 		;;
 	"manual")
-		make download
 		make menuconfig
 
 		if [[ -f .config ]]; then
 			cp .config "$BUILD_DIR"
 		fi
 
+		make download
 		make -j$(($(nproc) + 1))
 		;;
 	"debug")
