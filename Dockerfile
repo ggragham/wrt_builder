@@ -3,7 +3,7 @@ ARG WRT_DEPENDENCIES=""
 RUN apt update -y && apt install -y \
 	build-essential file g++ gawk gettext git \
 	libssl-dev python3-distutils rsync unzip vim wget \
-	$WRT_DEPS
+	$WRT_DEPENDENCIES
 
 RUN useradd -m -s /bin/bash build
 USER build
@@ -12,7 +12,7 @@ WORKDIR /home/build/wrt
 
 ARG WRT_FIRMWARE_REPO=""
 ARG WRT_BRANCH=""
-RUN git clone -b "$WRT_BRANCH" --single-branch "$WRT_FIRMWARE" .
+RUN git clone -b "$WRT_BRANCH" --single-branch "$WRT_FIRMWARE_REPO" .
 RUN ./scripts/feeds update -a && ./scripts/feeds install -a
 
 COPY build.sh .

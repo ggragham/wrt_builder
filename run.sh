@@ -34,17 +34,17 @@ getDepsList() {
 	OPENWRT_MAJOR_VERSION=$(echo "$SELECTED_FIRMWARE_VERSION" | sed -E 's/.*-([0-9]+)\..*/\1/')
 	if [[ "$SELECTED_FIRMWARE_VERSION" == "master" || "$OPENWRT_MAJOR_VERSION" -ge 21 ]]; then
 		echo "Setting dependencies for OpenWRT 21.x.x and above..."
-		SELECTED_FIRMWARE_DEPS="$OPENWRT_CURRENT_DEPS"
+		SELECTED_FIRMWARE_DEPS="$OPENWRT_CURRENT_DEPENDENCIES"
 	elif [[ "$OPENWRT_MAJOR_VERSION" -le 19 && "$SELECTED_FIRMWARE_VERSION" != "master" ]]; then
 		echo "Setting dependencies for OpenWRT 19.x.x and below..."
-		SELECTED_FIRMWARE_DEPS="$OPENWRT_OLD_DEPS"
+		SELECTED_FIRMWARE_DEPS="$OPENWRT_OLD_DEPENDENCIES"
 	fi
 }
 
 dockerBuild() {
 	docker build \
-		--build-arg WRT_DEPS="$SELECTED_FIRMWARE_DEPS" \
-		--build-arg WRT_FIRMWARE="$SELECTED_FIRMWARE_REPO" \
+		--build-arg WRT_DEPENDENCIES="$SELECTED_FIRMWARE_DEPS" \
+		--build-arg WRT_FIRMWARE_REPO="$SELECTED_FIRMWARE_REPO" \
 		--build-arg WRT_BRANCH="$SELECTED_FIRMWARE_VERSION" \
 		-t "${SELECTED_FIRMWARE,,}_${SELECTED_FIRMWARE_VERSION,,}" .
 }
