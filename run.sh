@@ -43,6 +43,8 @@ getDepsList() {
 
 dockerBuild() {
 	docker build \
+		--build-arg USERNAME="$USER" \
+		--build-arg USERID="$UID" \
 		--build-arg WRT_DEPENDENCIES="$SELECTED_FIRMWARE_DEPS" \
 		--build-arg WRT_FIRMWARE_REPO="$SELECTED_FIRMWARE_REPO" \
 		--build-arg WRT_BRANCH="$SELECTED_FIRMWARE_VERSION" \
@@ -52,7 +54,7 @@ dockerBuild() {
 cockerRun() {
 	local dockerArg
 	dockerArg="$1"
-	docker run -it -u "$(id -u):$(id -g)" -v "$BUILDS_VOLUME" \
+	docker run -it -v "$BUILDS_VOLUME" \
 		"${SELECTED_FIRMWARE,,}_${SELECTED_FIRMWARE_VERSION,,}" "$dockerArg"
 }
 
