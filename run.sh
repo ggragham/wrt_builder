@@ -4,11 +4,14 @@ cd "$(dirname "$0")" || exit "$?"
 
 BUILD_ENV="./build.env"
 BUILD_DIR="./build"
-BUILDS_VOLUME="$BUILD_DIR:/home/build/wrt/bin"
 SELECTED_FIRMWARE=""
 SELECTED_FIRMWARE_REPO=""
 SELECTED_FIRMWARE_VERSION=""
 SELECTED_FIRMWARE_DEPS=""
+DOCKER_BUILD_PATH="/home/build/wrt"
+CACHE_VOLUME=""
+BUILDS_VOLUME="$BUILD_DIR:$DOCKER_BUILD_PATH/bin"
+
 
 source "$BUILD_ENV"
 
@@ -54,7 +57,10 @@ dockerBuild() {
 cockerRun() {
 	local dockerArg
 	dockerArg="$1"
-	docker run -it -v "$BUILDS_VOLUME" \
+	CACHE_VOLUME="${SELECTED_FIRMWARE}_${SELECTED_FIRMWARE_VERSION}_cahce_volume:$DOCKER_BUILD_PATH"
+	docker run -it \
+		-v "$CACHE_VOLUME" \
+		-v "$BUILDS_VOLUME" \
 		"${SELECTED_FIRMWARE,,}_${SELECTED_FIRMWARE_VERSION,,}" "$dockerArg"
 }
 
