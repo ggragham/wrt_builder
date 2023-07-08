@@ -5,7 +5,7 @@ cd "$(dirname "$0")" || exit "$?"
 
 BUILD_PARAMETER="$1"
 CONFIG_DIR="./device_config"
-CONFIG_PATH="./$CONFIG_DIR/build.config"
+CONFIG_PATH="$CONFIG_DIR/build.config"
 FIX_DIR="$CONFIG_DIR/fix"
 PATCH_DIR="$CONFIG_DIR/patch"
 BUILD_DIR="./bin"
