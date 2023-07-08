@@ -4,14 +4,16 @@ cd "$(dirname "$0")" || exit "$?"
 
 BUILD_ENV="./build.env"
 BUILD_DIR="./build"
+CONFIG_DIR="./config"
+SELECTED_DEVICE=""
 SELECTED_FIRMWARE=""
 SELECTED_FIRMWARE_REPO=""
 SELECTED_FIRMWARE_VERSION=""
 SELECTED_FIRMWARE_DEPS=""
 DOCKER_BUILD_PATH="/home/build/wrt"
 CACHE_VOLUME=""
+CONFIG_VOLUME=""
 BUILDS_VOLUME="$BUILD_DIR:$DOCKER_BUILD_PATH/bin"
-
 
 source "$BUILD_ENV"
 
@@ -58,10 +60,64 @@ cockerRun() {
 	local dockerArg
 	dockerArg="$1"
 	CACHE_VOLUME="${SELECTED_FIRMWARE}_${SELECTED_FIRMWARE_VERSION}_cahce_volume:$DOCKER_BUILD_PATH"
+	CONFIG_VOLUME="$CONFIG_DIR/$SELECTED_DEVICE:$DOCKER_BUILD_PATH/device_config"
+
 	docker run -it \
 		-v "$CACHE_VOLUME" \
 		-v "$BUILDS_VOLUME" \
+		-v "$CONFIG_VOLUME" \
 		"${SELECTED_FIRMWARE,,}_${SELECTED_FIRMWARE_VERSION,,}" "$dockerArg"
+}
+
+firmwareMenu() {
+	getVersion() {
+		local firmwareDir
+		firmwareDir="$1"
+		source "$CONFIG_DIR/$firmwareDir/version.env"
+		SELECTED_FIRMWARE="$FIRMWARE_NAME"
+		SELECTED_FIRMWARE_REPO="$FIRMWARE_REPO"
+		SELECTED_FIRMWARE_VERSION="$FIRMWARE_BRANCH"
+	}
+
+	makeSelectedConfig() {
+		getDepsList
+		dockerBuild
+		cockerRun preconfig
+		pressAnyKeyToContinue
+	}
+
+	local firmwareDirs
+	local selectedFirmware
+	# Get dir list.
+	firmwareDirs=(./config/*)
+
+	while :; do
+		printHeader
+		echo "Select firmware config:"
+		for i in "${!firmwareDirs[@]}"; do
+			echo "$(("$i" + 1)). ${firmwareDirs[$i]#./config/}"
+		done
+		echo
+		echo "0. Back"
+		echo
+
+		read -rp "> " select
+		# Validate selection is a number and within the available options.
+		if [[ "$select" =~ ^[0-9]+$ ]]; then
+			if ((select >= 1)) && ((select <= ${#firmwareDirs[@]})); then
+				# Set chosen dir to variable.
+				selectedFirmware="${firmwareDirs[$((select - 1))]##*/}"
+				SELECTED_DEVICE="$selectedFirmware"
+				if getVersion "$SELECTED_DEVICE"; then
+					makeSelectedConfig
+				fi
+			elif ((choice == 0)); then
+				return 42
+			fi
+		else
+			continue
+		fi
+	done
 }
 
 manualConfigMenu() {
@@ -161,8 +217,7 @@ main() {
 		read -rp "> " select
 		case "$select" in
 		1)
-			echo "Not implemented yet"
-			pressAnyKeyToContinue
+			firmwareMenu
 			;;
 		2)
 			manualConfigMenu
