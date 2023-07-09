@@ -14,6 +14,7 @@ DOCKER_BUILD_PATH="/home/build/wrt"
 CACHE_VOLUME=""
 CONFIG_VOLUME=""
 BUILDS_VOLUME="$BUILD_DIR:$DOCKER_BUILD_PATH/bin"
+SET_VERBOSE_STATUS="off"
 
 source "$BUILD_ENV"
 
@@ -64,6 +65,7 @@ cockerRun() {
 	CONFIG_VOLUME="$CONFIG_DIR/$SELECTED_DEVICE:$DOCKER_BUILD_PATH/device_config"
 
 	docker run -it \
+		-e GET_VERBOSE_STATUS="$SET_VERBOSE_STATUS" \
 		-v "$CACHE_VOLUME" \
 		-v "$BUILDS_VOLUME" \
 		-v "$CONFIG_VOLUME" \
@@ -200,13 +202,23 @@ manualConfigMenu() {
 
 }
 
+verboseMode() {
+	if [[ "$SET_VERBOSE_STATUS" == "off" ]]; then
+		SET_VERBOSE_STATUS="on"
+	elif [[ "$SET_VERBOSE_STATUS" == "on" ]]; then
+		SET_VERBOSE_STATUS="off"
+	fi
+}
+
 main() {
 	doNotRunAsRoot
 	while :; do
 		printHeader
 		echo "1. Select device config"
 		echo "2. Manual config"
-		echo "3. Debug mode (shell)"
+		echo "3. Enter container shell"
+		echo
+		echo "9. Verbose mode $SET_VERBOSE_STATUS"
 		echo
 		echo "0. Quit"
 		echo
@@ -222,6 +234,9 @@ main() {
 		3)
 			echo "Not implemented yet"
 			pressAnyKeyToContinue
+			;;
+		9)
+			verboseMode
 			;;
 		0)
 			exit 0
