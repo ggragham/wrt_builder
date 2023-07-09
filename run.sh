@@ -69,6 +69,16 @@ cockerRun() {
 		"${SELECTED_FIRMWARE,,}_${SELECTED_FIRMWARE_VERSION,,}" "$dockerArg"
 }
 
+makeBuild() {
+	local dockerArg
+	dockerArg="$1"
+
+	getDepsList
+	dockerBuild
+	cockerRun "$dockerArg"
+	pressAnyKeyToContinue
+}
+
 firmwareMenu() {
 	getVersion() {
 		local firmwareDir
@@ -77,13 +87,6 @@ firmwareMenu() {
 		SELECTED_FIRMWARE="$FIRMWARE_NAME"
 		SELECTED_FIRMWARE_REPO="$FIRMWARE_REPO"
 		SELECTED_FIRMWARE_VERSION="$FIRMWARE_BRANCH"
-	}
-
-	makeSelectedConfig() {
-		getDepsList
-		dockerBuild
-		cockerRun preconfig
-		pressAnyKeyToContinue
 	}
 
 	local firmwareDirs
@@ -109,7 +112,7 @@ firmwareMenu() {
 				selectedFirmware="${firmwareDirs[$((select - 1))]##*/}"
 				SELECTED_DEVICE="$selectedFirmware"
 				if getVersion "$SELECTED_DEVICE"; then
-					makeSelectedConfig
+					makeBuild preconfig
 				fi
 			elif ((choice == 0)); then
 				return 42
@@ -163,13 +166,6 @@ manualConfigMenu() {
 		done
 	}
 
-	makeManualConfig() {
-		getDepsList
-		dockerBuild
-		cockerRun manual
-		pressAnyKeyToContinue
-	}
-
 	while :; do
 		printHeader
 		echo "Select firmware:"
@@ -185,7 +181,7 @@ manualConfigMenu() {
 			SELECTED_FIRMWARE="OPENWRT"
 			SELECTED_FIRMWARE_REPO="$OPENWRT_REPO"
 			if selectVersion; then
-				makeManualConfig
+				makeBuild manual
 			fi
 			;;
 		2)
