@@ -60,6 +60,7 @@ cockerRun() {
 	local dockerArg
 	dockerArg="$1"
 	CACHE_VOLUME="${SELECTED_FIRMWARE}_${SELECTED_FIRMWARE_VERSION}_cahce_volume:$DOCKER_BUILD_PATH"
+	# Mount root of config dir when $SELECTED_DEVICE is empty is a feature (. ❛ ᴗ ❛.)
 	CONFIG_VOLUME="$CONFIG_DIR/$SELECTED_DEVICE:$DOCKER_BUILD_PATH/device_config"
 
 	docker run -it \
