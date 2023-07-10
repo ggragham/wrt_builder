@@ -2,7 +2,7 @@
 
 cd "$(dirname "$0")" || exit "$?"
 
-BUILD_ENV="./build.env"
+BUILD_ENV_PATH="./build.env"
 SCRIPT_PATH="./build.sh"
 BUILD_DIR="./build"
 CONFIG_DIR="./config"
@@ -18,7 +18,7 @@ BUILDS_VOLUME="$BUILD_DIR:$DOCKER_BUILD_PATH/bin"
 BUILD_SCRIPT_VOLUME="$SCRIPT_PATH:$DOCKER_BUILD_PATH/$SCRIPT_PATH"
 SET_VERBOSE_STATUS="off"
 
-source "$BUILD_ENV"
+source "$BUILD_ENV_PATH"
 
 doNotRunAsRoot() {
 	if [[ $EUID == 0 ]]; then
@@ -40,6 +40,7 @@ printHeader() {
 
 getDepsList() {
 	OPENWRT_MAJOR_VERSION=$(echo "$SELECTED_FIRMWARE_VERSION" | sed -E 's/.*-([0-9]+)\..*/\1/')
+
 	if [[ "$SELECTED_FIRMWARE_VERSION" == "master" || "$OPENWRT_MAJOR_VERSION" -ge 21 ]]; then
 		echo "Setting dependencies for OpenWRT 21.x.x and above..."
 		SELECTED_FIRMWARE_DEPS="$OPENWRT_CURRENT_DEPENDENCIES"
@@ -97,8 +98,7 @@ firmwareMenu() {
 
 	local firmwareDirs
 	local selectedFirmware
-	# Get dir list.
-	firmwareDirs=(./config/*)
+	firmwareDirs=(./config/*) # Get dir list.
 
 	while :; do
 		printHeader
@@ -130,22 +130,18 @@ firmwareMenu() {
 }
 
 manualConfigMenu() {
-	# Fetch available versions for a selected firmware.
-	getVersions() {
-		local firmwareName="$1"
+	# Fetch and select firmware version.
+	selectVersion() {
 		OPENWRT_VERSIONS=()
+
 		# Read build.env file line by line and checks each line for pattern match.
 		while IFS= read -r line; do
-			if [[ $line =~ ^"${firmwareName}"_BRANCH_.* ]]; then
+			if [[ $line =~ ^"${SELECTED_FIRMWARE}"_BRANCH_.* ]]; then
 				value=$(echo "$line" | cut -d'=' -f2 | tr -d '"')
 				OPENWRT_VERSIONS+=("$value")
 			fi
-		done <"$BUILD_ENV"
-	}
+		done <"$BUILD_ENV_PATH"
 
-	# List and select firmware version.
-	selectVersion() {
-		getVersions "$SELECTED_FIRMWARE"
 		while :; do
 			printHeader
 			echo "Select version:"
@@ -218,6 +214,7 @@ verboseMode() {
 
 main() {
 	doNotRunAsRoot
+
 	while :; do
 		printHeader
 		echo "1. Select device config"
