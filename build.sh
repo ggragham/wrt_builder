@@ -58,11 +58,6 @@ main() {
 		;;
 	"manual")
 		makeBuild menuconfig
-
-		if [[ -f .config ]]; then
-			cp .config "$BUILD_DIR"
-		fi
-
 		makeBuild download
 		makeBuild -j$(($(nproc) + 1))
 		;;
