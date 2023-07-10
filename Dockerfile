@@ -22,5 +22,5 @@ ARG WRT_BRANCH=""
 RUN git clone -b "$WRT_BRANCH" --single-branch "$WRT_FIRMWARE_REPO" .
 RUN ./scripts/feeds update -a && ./scripts/feeds install -a
 
-COPY build.sh .
+# COPY build.sh .
 ENTRYPOINT [ "/bin/bash", "build.sh" ]

@@ -3,6 +3,7 @@
 cd "$(dirname "$0")" || exit "$?"
 
 BUILD_ENV="./build.env"
+SCRIPT_PATH="./build.sh"
 BUILD_DIR="./build"
 CONFIG_DIR="./config"
 SELECTED_DEVICE=""
@@ -14,6 +15,7 @@ DOCKER_BUILD_PATH="/home/build/wrt"
 CACHE_VOLUME=""
 CONFIG_VOLUME=""
 BUILDS_VOLUME="$BUILD_DIR:$DOCKER_BUILD_PATH/bin"
+BUILD_SCRIPT_VOLUME="$SCRIPT_PATH:$DOCKER_BUILD_PATH/$SCRIPT_PATH"
 SET_VERBOSE_STATUS="off"
 
 source "$BUILD_ENV"
@@ -66,6 +68,7 @@ cockerRun() {
 
 	docker run -it \
 		-e GET_VERBOSE_STATUS="$SET_VERBOSE_STATUS" \
+		-v "$BUILD_SCRIPT_VOLUME" \
 		-v "$CACHE_VOLUME" \
 		-v "$BUILDS_VOLUME" \
 		-v "$CONFIG_VOLUME" \
