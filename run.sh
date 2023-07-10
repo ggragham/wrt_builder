@@ -16,6 +16,7 @@ CACHE_VOLUME=""
 CONFIG_VOLUME=""
 OUTPUT_VOLUME="$OUTPUT_DIR:$DOCKER_BUILD_PATH/output_dir"
 BUILD_SCRIPT_VOLUME="$SCRIPT_PATH:$DOCKER_BUILD_PATH/$SCRIPT_PATH"
+SET_CLEAN_LEVEL="none"
 SET_VERBOSE_STATUS="off"
 
 source "$BUILD_ENV_PATH"
@@ -68,6 +69,7 @@ cockerRun() {
 	CONFIG_VOLUME="$CONFIG_DIR/$SELECTED_DEVICE:$DOCKER_BUILD_PATH/device_config"
 
 	docker run -it \
+		-e GET_CLEAN_LEVEL="$SET_CLEAN_LEVEL" \
 		-e GET_VERBOSE_STATUS="$SET_VERBOSE_STATUS" \
 		-v "$BUILD_SCRIPT_VOLUME" \
 		-v "$CACHE_VOLUME" \
@@ -204,6 +206,58 @@ manualConfigMenu() {
 
 }
 
+cleanMenu() {
+	while :; do
+		printHeader
+		echo "Select clean level:"
+		echo "1. none"
+		echo "2. clean"
+		echo "3. targetclean"
+		echo "4. dirclean"
+		echo "5. config-clean"
+		echo "6. distclean"
+		echo
+		echo "0. Back"
+		echo
+		echo "More info: https://openwrt.org/docs/guide-developer/toolchain/use-buildsystem#cleaning_up"
+		echo
+
+		read -rp "> " select
+		case "$select" in
+		1)
+			SET_CLEAN_LEVEL="none"
+			break
+			;;
+		2)
+			SET_CLEAN_LEVEL="clean"
+			break
+			;;
+		3)
+			SET_CLEAN_LEVEL="targetclean"
+			break
+			;;
+		4)
+			SET_CLEAN_LEVEL="dirclean"
+			break
+			;;
+		5)
+			SET_CLEAN_LEVEL="config-clean"
+			break
+			;;
+		6)
+			SET_CLEAN_LEVEL="distclean"
+			break
+			;;
+		0)
+			break
+			;;
+		*)
+			continue
+			;;
+		esac
+	done
+}
+
 verboseMode() {
 	if [[ "$SET_VERBOSE_STATUS" == "off" ]]; then
 		SET_VERBOSE_STATUS="on"
@@ -222,6 +276,7 @@ main() {
 		echo "2. Manual config"
 		echo "3. Enter container shell"
 		echo
+		echo "8. Clean level $SET_CLEAN_LEVEL"
 		echo "9. Verbose mode $SET_VERBOSE_STATUS"
 		echo
 		echo "0. Quit"
@@ -237,6 +292,9 @@ main() {
 			;;
 		3)
 			manualConfigMenu shell
+			;;
+		8)
+			cleanMenu
 			;;
 		9)
 			verboseMode

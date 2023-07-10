@@ -26,6 +26,14 @@ makeBuild() {
 	fi
 }
 
+makeClean() {
+	if [[ "$GET_CLEAN_LEVEL" == "none" ]]; then
+		return 0
+	else
+		makeBuild "$GET_CLEAN_LEVEL"
+	fi
+}
+
 saveBuild() {
 	if [[ $(ls -A "$BUILD_DIR") ]]; then
 		cp -r "$BUILD_DIR/." "$OUTPUT_DIR/"
@@ -52,6 +60,7 @@ processFiles() {
 
 main() {
 	doNotRunAsRoot
+	makeClean
 
 	case "$BUILD_PARAMETER" in
 	"preconfig")
