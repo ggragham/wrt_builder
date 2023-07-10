@@ -4,7 +4,6 @@ set -e
 cd "$(dirname "$0")" || exit "$?"
 
 BUILD_PARAMETER="$1"
-VERBOSE=""
 CONFIG_DIR="./device_config"
 CONFIG_PATH="$CONFIG_DIR/build.config"
 FIX_DIR="$CONFIG_DIR/fix"
@@ -18,11 +17,11 @@ doNotRunAsRoot() {
 	fi
 }
 
-verboseMode() {
+makeBuild() {
 	if [[ "$GET_VERBOSE_STATUS" == "off" ]]; then
-		VERBOSE=""
+		make "$@"
 	elif [[ "$GET_VERBOSE_STATUS" == "on" ]]; then
-		VERBOSE="V=sc"
+		make V=sc "$@"
 	fi
 }
 
@@ -46,7 +45,6 @@ processFiles() {
 
 main() {
 	doNotRunAsRoot
-	verboseMode
 
 	case "$BUILD_PARAMETER" in
 	"preconfig")
@@ -54,19 +52,19 @@ main() {
 		processFiles "$FIX_DIR" "*.sh" "bash"
 
 		cp "$CONFIG_PATH" .config
-		make defconfig "$VERBOSE"
-		make download "$VERBOSE"
-		make -j$(($(nproc) + 1)) "$VERBOSE"
+		makeBuild defconfig
+		makeBuild download
+		makeBuild -j$(($(nproc) + 1))
 		;;
 	"manual")
-		make menuconfig "$VERBOSE"
+		makeBuild menuconfig
 
 		if [[ -f .config ]]; then
 			cp .config "$BUILD_DIR"
 		fi
 
-		make download "$VERBOSE"
-		make -j$(($(nproc) + 1)) "$VERBOSE"
+		makeBuild download
+		makeBuild -j$(($(nproc) + 1))
 		;;
 	"shell")
 		/bin/bash
