@@ -172,6 +172,9 @@ manualConfigMenu() {
 		done
 	}
 
+	local arg
+	arg="$1"
+
 	while :; do
 		printHeader
 		echo "Select firmware:"
@@ -187,7 +190,7 @@ manualConfigMenu() {
 			SELECTED_FIRMWARE="OPENWRT"
 			SELECTED_FIRMWARE_REPO="$OPENWRT_REPO"
 			if selectVersion; then
-				makeBuild manual
+				makeBuild "$arg"
 			fi
 			;;
 		2)
@@ -232,11 +235,10 @@ main() {
 			firmwareMenu
 			;;
 		2)
-			manualConfigMenu
+			manualConfigMenu manual
 			;;
 		3)
-			echo "Not implemented yet"
-			pressAnyKeyToContinue
+			manualConfigMenu shell
 			;;
 		9)
 			verboseMode
