@@ -1,3 +1,2 @@
-# ignore shared dir
-build/*
-!build/README.md
+# Ignore output dir
+output/

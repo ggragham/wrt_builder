@@ -4,7 +4,7 @@ cd "$(dirname "$0")" || exit "$?"
 
 BUILD_ENV_PATH="./build.env"
 SCRIPT_PATH="./build.sh"
-BUILD_DIR="./build"
+OUTPUT_DIR="./output"
 CONFIG_DIR="./config"
 SELECTED_DEVICE=""
 SELECTED_FIRMWARE=""
@@ -14,7 +14,7 @@ SELECTED_FIRMWARE_DEPS=""
 DOCKER_BUILD_PATH="/home/build/wrt"
 CACHE_VOLUME=""
 CONFIG_VOLUME=""
-BUILDS_VOLUME="$BUILD_DIR:$DOCKER_BUILD_PATH/bin"
+OUTPUT_VOLUME="$OUTPUT_DIR:$DOCKER_BUILD_PATH/output_dir"
 BUILD_SCRIPT_VOLUME="$SCRIPT_PATH:$DOCKER_BUILD_PATH/$SCRIPT_PATH"
 SET_VERBOSE_STATUS="off"
 
@@ -71,7 +71,7 @@ cockerRun() {
 		-e GET_VERBOSE_STATUS="$SET_VERBOSE_STATUS" \
 		-v "$BUILD_SCRIPT_VOLUME" \
 		-v "$CACHE_VOLUME" \
-		-v "$BUILDS_VOLUME" \
+		-v "$OUTPUT_VOLUME" \
 		-v "$CONFIG_VOLUME" \
 		"${SELECTED_FIRMWARE,,}_${SELECTED_FIRMWARE_VERSION,,}" "$dockerArg"
 }
@@ -214,6 +214,7 @@ verboseMode() {
 
 main() {
 	doNotRunAsRoot
+	mkdir -p "$OUTPUT_DIR"
 
 	while :; do
 		printHeader

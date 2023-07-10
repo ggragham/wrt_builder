@@ -9,6 +9,7 @@ CONFIG_PATH="$CONFIG_DIR/build.config"
 FIX_DIR="$CONFIG_DIR/fix"
 PATCH_DIR="$CONFIG_DIR/patch"
 BUILD_DIR="./bin"
+OUTPUT_DIR="./output_dir"
 
 doNotRunAsRoot() {
 	if [[ $EUID == 0 ]]; then
@@ -22,6 +23,12 @@ makeBuild() {
 		make "$@"
 	elif [[ "$GET_VERBOSE_STATUS" == "on" ]]; then
 		make V=sc "$@"
+	fi
+}
+
+saveBuild() {
+	if [[ $(ls -A "$BUILD_DIR") ]]; then
+		cp -r "$BUILD_DIR/." "$OUTPUT_DIR/"
 	fi
 }
 
@@ -55,11 +62,13 @@ main() {
 		makeBuild defconfig
 		makeBuild download
 		makeBuild -j$(($(nproc) + 1))
+		saveBuild
 		;;
 	"manual")
 		makeBuild menuconfig
 		makeBuild download
 		makeBuild -j$(($(nproc) + 1))
+		saveBuild
 		;;
 	"shell")
 		/bin/bash
