@@ -40,14 +40,19 @@ printHeader() {
 }
 
 getDepsList() {
-	OPENWRT_MAJOR_VERSION=$(echo "$SELECTED_FIRMWARE_VERSION" | sed -E 's/.*-([0-9]+)\..*/\1/')
+	WRT_MAJOR_VERSION=$(echo "$SELECTED_FIRMWARE_VERSION" | sed -E 's/.*-([0-9]+)\..*/\1/')
 
-	if [[ "$SELECTED_FIRMWARE_VERSION" == "master" || "$OPENWRT_MAJOR_VERSION" -ge 21 ]]; then
-		echo "Setting dependencies for OpenWRT 21.x.x and above..."
-		SELECTED_FIRMWARE_DEPS="$OPENWRT_CURRENT_DEPENDENCIES"
-	elif [[ "$OPENWRT_MAJOR_VERSION" -le 19 && "$SELECTED_FIRMWARE_VERSION" != "master" ]]; then
-		echo "Setting dependencies for OpenWRT 19.x.x and below..."
-		SELECTED_FIRMWARE_DEPS="$OPENWRT_OLD_DEPENDENCIES"
+	if [[ $SELECTED_FIRMWARE == "OPENWRT" ]]; then
+		if [[ "$SELECTED_FIRMWARE_VERSION" == "master" || "$WRT_MAJOR_VERSION" -ge 21 ]]; then
+			echo "Setting dependencies for OpenWRT 21.x.x and above..."
+			SELECTED_FIRMWARE_DEPS="$OPENWRT_CURRENT_DEPENDENCIES"
+		elif [[ "$WRT_MAJOR_VERSION" -le 19 && "$SELECTED_FIRMWARE_VERSION" != "master" ]]; then
+			echo "Setting dependencies for OpenWRT 19.x.x and below..."
+			SELECTED_FIRMWARE_DEPS="$OPENWRT_OLD_DEPENDENCIES"
+		fi
+	elif [[ $SELECTED_FIRMWARE == "LIBRECMC" ]]; then
+		echo "Setting dependencies for LibreCMC..."
+		SELECTED_FIRMWARE_DEPS="$LIBRECMC_CURRENT_DEPENDENCIES"
 	fi
 }
 
@@ -188,8 +193,9 @@ manualConfigMenu() {
 			selectVersionAndRunBuild "$arg"
 			;;
 		2)
-			echo "Not implemented yet"
-			pressAnyKeyToContinue
+			SELECTED_FIRMWARE="LIBRECMC"
+			SELECTED_FIRMWARE_REPO="$LIBRECMC_REPO"
+			selectVersionAndRunBuild "$arg"
 			;;
 		0)
 			break
@@ -199,7 +205,6 @@ manualConfigMenu() {
 			;;
 		esac
 	done
-
 }
 
 cleanMenu() {
