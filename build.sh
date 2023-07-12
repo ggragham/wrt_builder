@@ -40,18 +40,36 @@ saveBuild() {
 	fi
 }
 
-processFiles() {
-	local dir=$1
-	local pattern=$2
-	local action=$3
-
-	local regex="[0-9]*_$pattern"
+applyPatch() {
+	local dir="$PATCH_DIR"
+	local regex="[0-9]*.patch"
 	local files=("$dir"/$regex)
 
-	if [[ -d "$dir" ]] && [[ -e "${files[0]}" ]]; then
+	if [[ -e "${files[0]}" ]]; then
 		for file in "${files[@]}"; do
-			echo "Processing $file..."
-			$action "$file"
+			if patch --dry-run -f -p1 --reverse <"$file" >/dev/null; then
+				echo "$file already applied."
+			else
+				patch -p1 <"$file"
+			fi
+		done
+	else
+		echo "No valid files found in $dir."
+	fi
+}
+
+applyFix() {
+	local dir="$FIX_DIR"
+	local regex="[0-9]*.sh"
+	local files=("$dir"/$regex)
+
+	if [[ -e "${files[0]}" ]]; then
+		for file in "${files[@]}"; do
+			if bash "$file" >/dev/null; then
+				echo "$file applied."
+			else
+				echo "$file hasn't applied."
+			fi
 		done
 	else
 		echo "No valid files found in $dir."
@@ -64,9 +82,8 @@ main() {
 
 	case "$BUILD_PARAMETER" in
 	"preconfig")
-		processFiles "$PATCH_DIR" "*.patch" "patch -p1 <"
-		processFiles "$FIX_DIR" "*.sh" "bash"
-
+		applyPatch
+		applyFix
 		cp "$CONFIG_PATH" .config
 		makeBuild defconfig
 		makeBuild download
