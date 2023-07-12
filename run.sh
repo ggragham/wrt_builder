@@ -132,8 +132,9 @@ firmwareMenu() {
 }
 
 manualConfigMenu() {
+	arg="$1"
 	# Fetch and select firmware version.
-	selectVersion() {
+	selectVersionAndRunBuild() {
 		OPENWRT_VERSIONS=()
 
 		# Read build.env file line by line and checks each line for pattern match.
@@ -160,7 +161,7 @@ manualConfigMenu() {
 			if [[ "$choice" =~ ^[0-9]+$ ]]; then
 				if ((choice >= 1)) && ((choice <= ${#OPENWRT_VERSIONS[@]})); then
 					SELECTED_FIRMWARE_VERSION="${OPENWRT_VERSIONS[$((choice - 1))]}" # Set the selected version.
-					return 0
+					makeBuild "$arg"
 				elif ((choice == 0)); then
 					return 42
 				fi
@@ -169,9 +170,6 @@ manualConfigMenu() {
 			fi
 		done
 	}
-
-	local arg
-	arg="$1"
 
 	while :; do
 		printHeader
@@ -187,9 +185,7 @@ manualConfigMenu() {
 		1)
 			SELECTED_FIRMWARE="OPENWRT"
 			SELECTED_FIRMWARE_REPO="$OPENWRT_REPO"
-			if selectVersion; then
-				makeBuild "$arg"
-			fi
+			selectVersionAndRunBuild "$arg"
 			;;
 		2)
 			echo "Not implemented yet"
