@@ -16,8 +16,17 @@ CACHE_VOLUME=""
 CONFIG_VOLUME=""
 OUTPUT_VOLUME="$OUTPUT_DIR:$DOCKER_BUILD_PATH/output_dir"
 BUILD_SCRIPT_VOLUME="$SCRIPT_PATH:$DOCKER_BUILD_PATH/$SCRIPT_PATH"
-SET_CLEAN_LEVEL="none"
-SET_VERBOSE_STATUS="off"
+SET_CLEAN_LEVEL=""
+PRINT_CLEAN_LEVEL=""
+SET_VERBOSE_STATUS=""
+PRINT_VERBOSE_STATUS=""
+
+# Text format.
+NORMAL='\033[0m'
+BOLD='\033[1m'
+BLUE='\033[1;34m'
+LIGHTBLUE='\033[1;94m'
+LIGHTRED='\033[0;91m'
 
 source "$BUILD_ENV_PATH"
 
@@ -33,10 +42,39 @@ pressAnyKeyToContinue() {
 	echo
 }
 
+asciiLogo() {
+	cat <<'EOF'
+   _ _ _  _____  _____    _____       _  _    _           
+  | | | || __  ||_   _|  | __  | _ _ |_|| | _| | ___  ___ 
+  | | | ||    -|  | |    | __ -|| | || || || . || -_||  _|
+  |_____||__|__|  |_|    |_____||___||_||_||___||___||_|  
+                                                          
+EOF
+}
+
 printHeader() {
 	clear
-	echo "WRT Build menu"
+	echo -e "${BLUE}${BOLD}"
+	asciiLogo
+	echo -e "${NORMAL}"
+	echo -e "${LIGHTBLUE}Choose an option:${NORMAL}"
 	echo
+}
+
+menuItem() {
+	local number="$1"
+	local text="$2"
+	echo -e "${LIGHTBLUE}$number.${NORMAL} $text"
+}
+
+printUrgentText() {
+	local value="$1"
+	echo -e "${LIGHTRED}${BOLD}$value${NORMAL}"
+}
+
+printNonUrgentText() {
+	local value="$1"
+	echo -e "${BOLD}$value${NORMAL}"
 }
 
 getDepsList() {
@@ -105,12 +143,11 @@ firmwareMenu() {
 
 	while :; do
 		printHeader
-		echo "Select firmware config:"
 		for i in "${!firmwareDirs[@]}"; do
-			echo "$(("$i" + 1)). ${firmwareDirs[$i]#./config/}"
+			menuItem "$(("$i" + 1))" "${firmwareDirs[$i]#./config/}"
 		done
 		echo
-		echo "0. Back"
+		menuItem "0" "Back"
 		echo
 
 		read -rp "> " select
@@ -149,13 +186,12 @@ manualConfigMenu() {
 
 		while :; do
 			printHeader
-			echo "Select version:"
 			# List firmware versions.
 			for i in "${!OPENWRT_VERSIONS[@]}"; do
-				echo "$(("$i" + 1)). ${OPENWRT_VERSIONS[$i]}"
+				menuItem "$(("$i" + 1))" "${OPENWRT_VERSIONS[$i]}"
 			done
 			echo
-			echo "0. Back"
+			menuItem "0" "Back"
 			echo
 
 			read -rp "> " choice
@@ -175,11 +211,10 @@ manualConfigMenu() {
 
 	while :; do
 		printHeader
-		echo "Select firmware:"
-		echo "1. OpenWRT"
-		echo "2. LibreCMC"
+		menuItem "1" "OpenWRT"
+		menuItem "2" "LibreCMC"
 		echo
-		echo "0. Back"
+		menuItem "0" "Back"
 		echo
 
 		read -rp "> " select
@@ -207,15 +242,14 @@ manualConfigMenu() {
 cleanMenu() {
 	while :; do
 		printHeader
-		echo "Select clean level:"
-		echo "1. none"
-		echo "2. clean"
-		echo "3. targetclean"
-		echo "4. dirclean"
-		echo "5. config-clean"
-		echo "6. distclean"
+		menuItem "1" "none"
+		menuItem "2" "clean"
+		menuItem "3" "targetclean"
+		menuItem "4" "dirclean"
+		menuItem "5" "config-clean"
+		menuItem "6" "distclean"
 		echo
-		echo "0. Back"
+		menuItem "0" "Back"
 		echo
 		echo "More info: https://openwrt.org/docs/guide-developer/toolchain/use-buildsystem#cleaning_up"
 		echo
@@ -224,26 +258,32 @@ cleanMenu() {
 		case "$select" in
 		1)
 			SET_CLEAN_LEVEL="none"
+			PRINT_CLEAN_LEVEL="$(printNonUrgentText $SET_CLEAN_LEVEL)"
 			break
 			;;
 		2)
 			SET_CLEAN_LEVEL="clean"
+			PRINT_CLEAN_LEVEL="$(printUrgentText $SET_CLEAN_LEVEL)"
 			break
 			;;
 		3)
 			SET_CLEAN_LEVEL="targetclean"
+			PRINT_CLEAN_LEVEL="$(printUrgentText $SET_CLEAN_LEVEL)"
 			break
 			;;
 		4)
 			SET_CLEAN_LEVEL="dirclean"
+			PRINT_CLEAN_LEVEL="$(printUrgentText $SET_CLEAN_LEVEL)"
 			break
 			;;
 		5)
 			SET_CLEAN_LEVEL="config-clean"
+			PRINT_CLEAN_LEVEL="$(printUrgentText $SET_CLEAN_LEVEL)"
 			break
 			;;
 		6)
 			SET_CLEAN_LEVEL="distclean"
+			PRINT_CLEAN_LEVEL="$(printUrgentText $SET_CLEAN_LEVEL)"
 			break
 			;;
 		0)
@@ -259,8 +299,10 @@ cleanMenu() {
 verboseMode() {
 	if [[ "$SET_VERBOSE_STATUS" == "off" ]]; then
 		SET_VERBOSE_STATUS="on"
+		PRINT_VERBOSE_STATUS="$(printUrgentText $SET_VERBOSE_STATUS)"
 	elif [[ "$SET_VERBOSE_STATUS" == "on" ]]; then
 		SET_VERBOSE_STATUS="off"
+		PRINT_VERBOSE_STATUS="$(printNonUrgentText $SET_VERBOSE_STATUS)"
 	fi
 }
 
@@ -268,16 +310,21 @@ main() {
 	doNotRunAsRoot
 	mkdir -p "$OUTPUT_DIR"
 
+	SET_CLEAN_LEVEL="none"
+	PRINT_CLEAN_LEVEL="$(printNonUrgentText $SET_CLEAN_LEVEL)"
+	SET_VERBOSE_STATUS="off"
+	PRINT_VERBOSE_STATUS="$(printNonUrgentText $SET_VERBOSE_STATUS)"
+
 	while :; do
 		printHeader
-		echo "1. Select device config"
-		echo "2. Manual config"
-		echo "3. Enter container shell"
+		menuItem "1" "Select device config"
+		menuItem "2" "Manual config"
+		menuItem "3" "Enter container shell"
 		echo
-		echo "8. Clean level $SET_CLEAN_LEVEL"
-		echo "9. Verbose mode $SET_VERBOSE_STATUS"
+		menuItem "8" "Clean level: $PRINT_CLEAN_LEVEL"
+		menuItem "9" "Verbose mode: $PRINT_VERBOSE_STATUS"
 		echo
-		echo "0. Quit"
+		menuItem "0" "Quit"
 		echo
 
 		read -rp "> " select
