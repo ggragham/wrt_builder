@@ -67,8 +67,7 @@ dockerBuild() {
 }
 
 cockerRun() {
-	local dockerArg
-	dockerArg="$1"
+	local dockerArg="$1"
 	CACHE_VOLUME="${SELECTED_FIRMWARE}_${SELECTED_FIRMWARE_VERSION}_cache_volume:$DOCKER_BUILD_PATH"
 	# Mount root of config dir when $SELECTED_DEVICE is empty is a feature (. ❛ ᴗ ❛.)
 	CONFIG_VOLUME="$CONFIG_DIR/$SELECTED_DEVICE:$DOCKER_BUILD_PATH/device_config"
@@ -84,9 +83,7 @@ cockerRun() {
 }
 
 makeBuild() {
-	local dockerArg
-	dockerArg="$1"
-
+	local dockerArg="$1"
 	getDepsList
 	dockerBuild
 	cockerRun "$dockerArg"
@@ -95,16 +92,15 @@ makeBuild() {
 
 firmwareMenu() {
 	getVersion() {
-		local firmwareDir
-		firmwareDir="$1"
+		local firmwareDir="$1"
 		source "$CONFIG_DIR/$firmwareDir/version.env"
 		SELECTED_FIRMWARE="$FIRMWARE_NAME"
 		SELECTED_FIRMWARE_REPO="$FIRMWARE_REPO"
 		SELECTED_FIRMWARE_VERSION="$FIRMWARE_BRANCH"
 	}
 
-	local firmwareDirs
-	local selectedFirmware
+	local firmwareDirs=""
+	local selectedFirmware=""
 	firmwareDirs=(./config/*) # Get dir list.
 
 	while :; do
@@ -138,6 +134,7 @@ firmwareMenu() {
 
 manualConfigMenu() {
 	arg="$1"
+
 	# Fetch and select firmware version.
 	selectVersionAndRunBuild() {
 		OPENWRT_VERSIONS=()
@@ -190,12 +187,12 @@ manualConfigMenu() {
 		1)
 			SELECTED_FIRMWARE="OPENWRT"
 			SELECTED_FIRMWARE_REPO="$OPENWRT_REPO"
-			selectVersionAndRunBuild "$arg"
+			selectVersionAndRunBuild
 			;;
 		2)
 			SELECTED_FIRMWARE="LIBRECMC"
 			SELECTED_FIRMWARE_REPO="$LIBRECMC_REPO"
-			selectVersionAndRunBuild "$arg"
+			selectVersionAndRunBuild
 			;;
 		0)
 			break
