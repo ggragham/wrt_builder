@@ -242,14 +242,13 @@ manualConfigMenu() {
 cleanMenu() {
 	while :; do
 		printHeader
-		menuItem "1" "none"
-		menuItem "2" "clean"
-		menuItem "3" "targetclean"
-		menuItem "4" "dirclean"
-		menuItem "5" "config-clean"
-		menuItem "6" "distclean"
+		menuItem "1" "clean"
+		menuItem "2" "targetclean"
+		menuItem "3" "dirclean"
+		menuItem "4" "config-clean"
+		menuItem "5" "distclean"
 		echo
-		menuItem "0" "Back"
+		menuItem "0" "none"
 		echo
 		echo "More info: https://openwrt.org/docs/guide-developer/toolchain/use-buildsystem#cleaning_up"
 		echo
@@ -257,36 +256,33 @@ cleanMenu() {
 		read -rp "> " select
 		case "$select" in
 		1)
-			SET_CLEAN_LEVEL="none"
-			PRINT_CLEAN_LEVEL="$(printNonUrgentText $SET_CLEAN_LEVEL)"
-			break
-			;;
-		2)
 			SET_CLEAN_LEVEL="clean"
 			PRINT_CLEAN_LEVEL="$(printUrgentText $SET_CLEAN_LEVEL)"
 			break
 			;;
-		3)
+		2)
 			SET_CLEAN_LEVEL="targetclean"
 			PRINT_CLEAN_LEVEL="$(printUrgentText $SET_CLEAN_LEVEL)"
 			break
 			;;
-		4)
+		3)
 			SET_CLEAN_LEVEL="dirclean"
 			PRINT_CLEAN_LEVEL="$(printUrgentText $SET_CLEAN_LEVEL)"
 			break
 			;;
-		5)
+		4)
 			SET_CLEAN_LEVEL="config-clean"
 			PRINT_CLEAN_LEVEL="$(printUrgentText $SET_CLEAN_LEVEL)"
 			break
 			;;
-		6)
+		5)
 			SET_CLEAN_LEVEL="distclean"
 			PRINT_CLEAN_LEVEL="$(printUrgentText $SET_CLEAN_LEVEL)"
 			break
 			;;
 		0)
+			SET_CLEAN_LEVEL="none"
+			PRINT_CLEAN_LEVEL="$(printNonUrgentText $SET_CLEAN_LEVEL)"
 			break
 			;;
 		*)
