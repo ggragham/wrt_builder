@@ -1,4 +1,4 @@
-# TP-Link TL-WR841N/ND v8 (4mb flash)
+# TP-Link TL-WR841N/ND v8/9 (4mb flash)
 
 ## OpenWRT
 Version (branch): 19.07.10 (openwrt-19.07)
