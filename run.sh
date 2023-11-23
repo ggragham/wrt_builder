@@ -196,13 +196,13 @@ manualConfigMenu() {
 			menuItem "0" "Back"
 			echo
 
-			read -rp "> " choice
+			read -rp "> " select
 			# Validate selection is a number and within the available options.
-			if [[ "$choice" =~ ^[0-9]+$ ]]; then
-				if ((choice >= 1)) && ((choice <= ${#OPENWRT_VERSIONS[@]})); then
-					SELECTED_FIRMWARE_VERSION="${OPENWRT_VERSIONS[$((choice - 1))]}" # Set the selected version.
+			if [[ "$select" =~ ^[0-9]+$ ]]; then
+				if ((select >= 1)) && ((select <= ${#OPENWRT_VERSIONS[@]})); then
+					SELECTED_FIRMWARE_VERSION="${OPENWRT_VERSIONS[$((select - 1))]}" # Set the selected version.
 					makeBuild "$arg"
-				elif ((choice == 0)); then
+				elif ((select == 0)); then
 					return 42
 				fi
 			else
