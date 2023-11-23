@@ -11,6 +11,7 @@ SELECTED_FIRMWARE=""
 SELECTED_FIRMWARE_REPO=""
 SELECTED_FIRMWARE_VERSION=""
 SELECTED_FIRMWARE_DEPS=""
+DOCKER_TAG=""
 DOCKER_BUILD_PATH="/home/build/wrt"
 CACHE_VOLUME=""
 CONFIG_VOLUME=""
@@ -101,7 +102,7 @@ dockerBuild() {
 		--build-arg WRT_DEPENDENCIES="$SELECTED_FIRMWARE_DEPS" \
 		--build-arg WRT_FIRMWARE_REPO="$SELECTED_FIRMWARE_REPO" \
 		--build-arg WRT_BRANCH="$SELECTED_FIRMWARE_VERSION" \
-		-t "${SELECTED_FIRMWARE,,}_${SELECTED_FIRMWARE_VERSION,,}" .
+		-t "$DOCKER_TAG" .
 }
 
 cockerRun() {
@@ -117,7 +118,7 @@ cockerRun() {
 		-v "$CACHE_VOLUME" \
 		-v "$OUTPUT_VOLUME" \
 		-v "$CONFIG_VOLUME" \
-		"${SELECTED_FIRMWARE,,}_${SELECTED_FIRMWARE_VERSION,,}" "$dockerArg"
+		"$DOCKER_TAG" "$dockerArg"
 }
 
 makeBuild() {
@@ -135,6 +136,7 @@ firmwareMenu() {
 		SELECTED_FIRMWARE="$FIRMWARE_NAME"
 		SELECTED_FIRMWARE_REPO="$FIRMWARE_REPO"
 		SELECTED_FIRMWARE_VERSION="$FIRMWARE_BRANCH"
+		DOCKER_TAG="$(echo "$SELECTED_FIRMWARE" | tr '[:upper:]' '[:lower:]')_$(echo "$SELECTED_FIRMWARE_VERSION" | tr '[:upper:]' '[:lower:]')"
 	}
 
 	local firmwareDirs=""
@@ -144,7 +146,7 @@ firmwareMenu() {
 	while :; do
 		printHeader
 		for i in "${!firmwareDirs[@]}"; do
-			menuItem "$(("$i" + 1))" "${firmwareDirs[$i]#./config/}"
+			menuItem "$((i + 1))" "${firmwareDirs[$i]#./config/}"
 		done
 		echo
 		menuItem "0" "Back"
@@ -188,7 +190,7 @@ manualConfigMenu() {
 			printHeader
 			# List firmware versions.
 			for i in "${!OPENWRT_VERSIONS[@]}"; do
-				menuItem "$(("$i" + 1))" "${OPENWRT_VERSIONS[$i]}"
+				menuItem "$((i + 1))" "${OPENWRT_VERSIONS[$i]}"
 			done
 			echo
 			menuItem "0" "Back"
