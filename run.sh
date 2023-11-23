@@ -205,8 +205,6 @@ manualConfigMenu() {
 				elif ((select == 0)); then
 					return 42
 				fi
-			else
-				continue
 			fi
 		done
 	}
