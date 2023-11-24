@@ -109,7 +109,7 @@ cockerRun() {
 	local dockerArg="$1"
 	CACHE_VOLUME="${SELECTED_FIRMWARE}_${SELECTED_FIRMWARE_VERSION}_cache_volume:$DOCKER_BUILD_PATH"
 	# Mount root of config dir when $SELECTED_DEVICE is empty is a feature (. ❛ ᴗ ❛.)
-	CONFIG_VOLUME="$CONFIG_DIR/$SELECTED_DEVICE:$DOCKER_BUILD_PATH/device_config"
+	CONFIG_VOLUME="$CONFIG_DIR/$SELECTED_DEVICE/$SELECTED_FIRMWARE:$DOCKER_BUILD_PATH/device_config"
 
 	docker run -it \
 		-e GET_CLEAN_LEVEL="$SET_CLEAN_LEVEL" \
@@ -130,43 +130,69 @@ makeBuild() {
 }
 
 firmwareMenu() {
-	getVersion() {
-		local firmwareDir="$1"
-		source "$CONFIG_DIR/$firmwareDir/version.env"
-		SELECTED_FIRMWARE="$FIRMWARE_NAME"
-		SELECTED_FIRMWARE_REPO="$FIRMWARE_REPO"
-		SELECTED_FIRMWARE_VERSION="$FIRMWARE_BRANCH"
-		DOCKER_TAG="$(echo "$SELECTED_FIRMWARE" | tr '[:upper:]' '[:lower:]')_$(echo "$SELECTED_FIRMWARE_VERSION" | tr '[:upper:]' '[:lower:]')"
+	selectDir() {
+		while [ ! -f "$dirPath/versions" ]; do
+			dirList=("$dirPath"/*)
+
+			printHeader
+			for i in "${!dirList[@]}"; do
+				menuItem "$((i + 1))" "$(basename "${dirList[i]}/")"
+			done
+			echo
+			menuItem "0" "Back"
+			echo
+
+			read -rp "> " select
+			if [[ "$select" =~ ^[0-9]+$ ]]; then
+				if ((select >= 1)) && ((select <= ${#dirList[@]})); then
+					dirPath="${dirList[$((select - 1))]}"
+				elif ((select == 0)) && [ "$dirPath" == "$CONFIG_DIR" ]; then
+					return 2
+				elif ((select == 0)); then
+					dirPath=$(dirname "$dirPath")
+					continue
+				fi
+			fi
+		done
 	}
 
-	local firmwareDirs=""
-	local selectedFirmware=""
-	firmwareDirs=(./config/*) # Get dir list.
+	local dirPath="$CONFIG_DIR"
+	local dirList
+	local selectedVersion
+	local versions=()
+
+	if ! selectDir; then
+		return "$?"
+	fi
+
+	local versionsFile="$dirPath/versions"
+	while IFS= read -r line; do
+		versions+=("$line")
+	done <"$versionsFile"
 
 	while :; do
 		printHeader
-		for i in "${!firmwareDirs[@]}"; do
-			menuItem "$((i + 1))" "${firmwareDirs[$i]#./config/}"
+		for i in "${!versions[@]}"; do
+			menuItem "$((i + 1))" "${versions[i]}"
 		done
 		echo
-		menuItem "0" "Back"
+		menuItem "0" "Main Menu"
 		echo
 
 		read -rp "> " select
-		# Validate selection is a number and within the available options.
 		if [[ "$select" =~ ^[0-9]+$ ]]; then
-			if ((select >= 1)) && ((select <= ${#firmwareDirs[@]})); then
-				# Set chosen dir to variable.
-				selectedFirmware="${firmwareDirs[$((select - 1))]##*/}"
-				SELECTED_DEVICE="$selectedFirmware"
-				if getVersion "$SELECTED_DEVICE"; then
-					makeBuild preconfig
-				fi
-			elif ((choice == 0)); then
-				return 42
+			if ((select >= 1)) && ((select <= ${#versions[@]})); then
+				selectedVersion="${versions[$((select - 1))]}"
+				source "$dirPath/firmware.env"
+				SELECTED_DEVICE="$DEVICE_NAME"
+				SELECTED_FIRMWARE="$FIRMWARE_NAME"
+				SELECTED_FIRMWARE_REPO="$FIRMWARE_REPO"
+				SELECTED_FIRMWARE_VERSION="$selectedVersion"
+				DOCKER_TAG="$(echo "$SELECTED_FIRMWARE" | tr '[:upper:]' '[:lower:]')_$(echo "$SELECTED_FIRMWARE_VERSION" | tr '[:upper:]' '[:lower:]')"
+				makeBuild preconfig
+			elif ((select == 0)); then
+				return 0
 			fi
-		else
-			continue
 		fi
 	done
 }
@@ -203,7 +229,7 @@ manualConfigMenu() {
 					SELECTED_FIRMWARE_VERSION="${OPENWRT_VERSIONS[$((select - 1))]}" # Set the selected version.
 					makeBuild "$arg"
 				elif ((select == 0)); then
-					return 42
+					return 2
 				fi
 			fi
 		done
