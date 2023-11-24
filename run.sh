@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+# Change current directory to the script's directory
 cd "$(dirname "$0")" || exit "$?"
 
 # Define constants
@@ -81,6 +82,7 @@ printNonUrgentText() {
 	echo -e "${BOLD}$value${NORMAL}"
 }
 
+# Get dependencies list based on firmware and version.
 getDepsList() {
 	WRT_MAJOR_VERSION=$(echo "$SELECTED_FIRMWARE_VERSION" | sed -E 's/v([0-9]+).*/\1/')
 
@@ -136,11 +138,14 @@ makeBuild() {
 }
 
 firmwareMenu() {
+	# Select the directory containing the firmware configuration
 	selectDir() {
+		# Loop continues until a file named "versions" is found in the directory
 		while [ ! -f "$dirPath/versions" ]; do
 			dirList=("$dirPath"/*)
 
 			printHeader
+			# Display all directories as menu items
 			for i in "${!dirList[@]}"; do
 				menuItem "$((i + 1))" "$(basename "${dirList[i]}/")"
 			done
@@ -149,11 +154,21 @@ firmwareMenu() {
 			echo
 
 			read -rp "> " select
+
+			# Validate selection is a number and within the available options.
 			if [[ "$select" =~ ^[0-9]+$ ]]; then
+				# If the selection is within the range of the directory list,
+				# update the directory path to the selected directory
 				if ((select >= 1)) && ((select <= ${#dirList[@]})); then
 					dirPath="${dirList[$((select - 1))]}"
+
+				# If the selection is 0 and the current directory is the config directory,
+				# exit the function with return code 2
 				elif ((select == 0)) && [ "$dirPath" == "$CONFIG_DIR" ]; then
 					return 2
+
+				# If the selection is 0 and the current directory is not the config directory,
+				# go up one level in the directory path
 				elif ((select == 0)); then
 					dirPath=$(dirname "$dirPath")
 					continue
@@ -171,13 +186,16 @@ firmwareMenu() {
 		return "$?"
 	fi
 
+	# Read avaliable firmware version from file
 	local versionsFile="$dirPath/versions"
 	while IFS= read -r line; do
 		versions+=("$line")
 	done <"$versionsFile"
 
+	# Select avaliable firmware version
 	while :; do
 		printHeader
+		# Display all versions as menu items
 		for i in "${!versions[@]}"; do
 			menuItem "$((i + 1))" "${versions[i]}"
 		done
@@ -186,7 +204,11 @@ firmwareMenu() {
 		echo
 
 		read -rp "> " select
+		# Validate selection is a number and within the available options.
 		if [[ "$select" =~ ^[0-9]+$ ]]; then
+			# If the selection is within the range of the versions list,
+			# set the selected version and other related variables,
+			# then call the makeBuild function with the "preconfig" argument
 			if ((select >= 1)) && ((select <= ${#versions[@]})); then
 				selectedVersion="${versions[$((select - 1))]}"
 				source "$dirPath/firmware.env"
@@ -196,6 +218,9 @@ firmwareMenu() {
 				SELECTED_FIRMWARE_VERSION="$selectedVersion"
 				DOCKER_TAG="$(echo "$SELECTED_FIRMWARE" | tr '[:upper:]' '[:lower:]')_$(echo "$SELECTED_FIRMWARE_VERSION" | tr '[:upper:]' '[:lower:]')"
 				makeBuild preconfig
+
+			# If the selection is 0, return to the main menu
+			# Feature not a bug (´• ω •`)
 			elif ((select == 0)); then
 				return 0
 			fi
@@ -271,6 +296,7 @@ manualConfigMenu() {
 	done
 }
 
+# Select the level of cleaning to be performed.
 cleanMenu() {
 	while :; do
 		printHeader
