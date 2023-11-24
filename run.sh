@@ -79,20 +79,23 @@ printNonUrgentText() {
 }
 
 getDepsList() {
-	WRT_MAJOR_VERSION=$(echo "$SELECTED_FIRMWARE_VERSION" | sed -E 's/.*-([0-9]+)\..*/\1/')
+	WRT_MAJOR_VERSION=$(echo "$SELECTED_FIRMWARE_VERSION" | sed -E 's/v([0-9]+).*/\1/')
 
-	if [[ $SELECTED_FIRMWARE == "OPENWRT" ]]; then
+	case $SELECTED_FIRMWARE in
+	"OPENWRT")
 		if [[ "$SELECTED_FIRMWARE_VERSION" == "master" || "$WRT_MAJOR_VERSION" -ge 21 ]]; then
 			echo "Setting dependencies for OpenWRT 21.x.x and above..."
 			SELECTED_FIRMWARE_DEPS="$OPENWRT_CURRENT_DEPENDENCIES"
-		elif [[ "$WRT_MAJOR_VERSION" -le 19 && "$SELECTED_FIRMWARE_VERSION" != "master" ]]; then
+		else
 			echo "Setting dependencies for OpenWRT 19.x.x and below..."
 			SELECTED_FIRMWARE_DEPS="$OPENWRT_OLD_DEPENDENCIES"
 		fi
-	elif [[ $SELECTED_FIRMWARE == "LIBRECMC" ]]; then
+		;;
+	"LIBRECMC")
 		echo "Setting dependencies for LibreCMC..."
 		SELECTED_FIRMWARE_DEPS="$LIBRECMC_CURRENT_DEPENDENCIES"
-	fi
+		;;
+	esac
 }
 
 dockerBuild() {
