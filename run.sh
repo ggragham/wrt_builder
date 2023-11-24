@@ -2,32 +2,35 @@
 
 cd "$(dirname "$0")" || exit "$?"
 
-BUILD_ENV_PATH="./build.env"
-SCRIPT_PATH="./build.sh"
-OUTPUT_DIR="./output"
-CONFIG_DIR="./config"
+# Define constants
+readonly BUILD_ENV_PATH="./build.env"
+readonly SCRIPT_PATH="./build.sh"
+readonly OUTPUT_DIR="./output"
+readonly CONFIG_DIR="./config"
+readonly DOCKER_BUILD_PATH="/home/build/wrt"
+readonly OUTPUT_VOLUME="$OUTPUT_DIR:$DOCKER_BUILD_PATH/output_dir"
+readonly BUILD_SCRIPT_VOLUME="$SCRIPT_PATH:$DOCKER_BUILD_PATH/$SCRIPT_PATH"
+
+# Define variables
 SELECTED_DEVICE=""
 SELECTED_FIRMWARE=""
 SELECTED_FIRMWARE_REPO=""
 SELECTED_FIRMWARE_VERSION=""
 SELECTED_FIRMWARE_DEPS=""
 DOCKER_TAG=""
-DOCKER_BUILD_PATH="/home/build/wrt"
 CACHE_VOLUME=""
 CONFIG_VOLUME=""
-OUTPUT_VOLUME="$OUTPUT_DIR:$DOCKER_BUILD_PATH/output_dir"
-BUILD_SCRIPT_VOLUME="$SCRIPT_PATH:$DOCKER_BUILD_PATH/$SCRIPT_PATH"
 SET_CLEAN_LEVEL=""
 PRINT_CLEAN_LEVEL=""
 SET_VERBOSE_STATUS=""
 PRINT_VERBOSE_STATUS=""
 
-# Text format.
-NORMAL='\033[0m'
-BOLD='\033[1m'
-BLUE='\033[1;34m'
-LIGHTBLUE='\033[1;94m'
-LIGHTRED='\033[0;91m'
+# Text format variables
+readonly NORMAL='\033[0m'
+readonly BOLD='\033[1m'
+readonly BLUE='\033[1;34m'
+readonly LIGHTBLUE='\033[1;94m'
+readonly LIGHTRED='\033[0;91m'
 
 source "$BUILD_ENV_PATH"
 
