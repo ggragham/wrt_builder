@@ -369,40 +369,98 @@ main() {
 	SET_VERBOSE_STATUS="off"
 	PRINT_VERBOSE_STATUS="$(printNonUrgentText $SET_VERBOSE_STATUS)"
 
-	while :; do
-		printHeader
-		menuItem "1" "Select device config"
-		menuItem "2" "Manual config"
-		menuItem "3" "Enter container shell"
-		echo
-		menuItem "8" "Clean level: $PRINT_CLEAN_LEVEL"
-		menuItem "9" "Verbose mode: $PRINT_VERBOSE_STATUS"
-		echo
-		menuItem "0" "Quit"
-		echo
+	# Check if arguments are provided.
+	if [ $# -gt 0 ]; then
+		# Loop to process command line arguments.
+		while (("$#")); do
+			case "$1" in
+			-d | --device)
+				if [ -n "$2" ] && [ "${2:0:1}" != "-" ]; then
+					SELECTED_DEVICE=$2
+					shift 2
+				else
+					echo "Error: Argument for $1 is missing" >&2
+					exit 1
+				fi
+				;;
+			-f | --firmware)
+				if [ -n "$2" ] && [ "${2:0:1}" != "-" ]; then
+					SELECTED_FIRMWARE=$2
+					shift 2
+				else
+					echo "Error: Argument for $1 is missing" >&2
+					exit 1
+				fi
+				;;
+			-v | --version)
+				if [ -n "$2" ] && [ "${2:0:1}" != "-" ]; then
+					SELECTED_FIRMWARE_VERSION=$2
+					shift 2
+				else
+					echo "Error: Argument for $1 is missing" >&2
+					exit 1
+				fi
+				;;
+			--* | -*=) # Unsupported flags.
+				echo "Error: Unsupported flag $1" >&2
+				exit 1
+				;;
+			*) # Preserve positional arguments.
+				PARAMS="$PARAMS $1"
+				shift
+				;;
+			esac
+		done
 
-		read -rp "> " select
-		case "$select" in
-		1)
-			firmwareMenu
-			;;
-		2)
-			manualConfigMenu manual
-			;;
-		3)
-			manualConfigMenu shell
-			;;
-		8)
-			cleanMenu
-			;;
-		9)
-			verboseMode
-			;;
-		0)
-			exit 0
-			;;
-		esac
-	done
+		# Set positional arguments in their proper place.
+		eval set -- "$PARAMS"
+
+		# Check if all flags were provided.
+		if [ -z "$SELECTED_DEVICE" ] || [ -z "$SELECTED_FIRMWARE" ] || [ -z "$SELECTED_FIRMWARE_VERSION" ]; then
+			echo "Error: You must provide all flags (-d, -f, -v)" >&2
+			exit 1
+		fi
+
+		source "$CONFIG_DIR/$SELECTED_DEVICE/$SELECTED_FIRMWARE/firmware.env"
+		SELECTED_FIRMWARE_REPO="$FIRMWARE_REPO"
+		DOCKER_TAG="$(echo "$SELECTED_FIRMWARE" | tr '[:upper:]' '[:lower:]')_$(echo "$SELECTED_FIRMWARE_VERSION" | tr '[:upper:]' '[:lower:]')"
+		makeBuild preconfig
+	else
+		while :; do
+			printHeader
+			menuItem "1" "Select device config"
+			menuItem "2" "Manual config"
+			menuItem "3" "Enter container shell"
+			echo
+			menuItem "8" "Clean level: $PRINT_CLEAN_LEVEL"
+			menuItem "9" "Verbose mode: $PRINT_VERBOSE_STATUS"
+			echo
+			menuItem "0" "Quit"
+			echo
+
+			read -rp "> " select
+			case "$select" in
+			1)
+				firmwareMenu
+				;;
+			2)
+				manualConfigMenu manual
+				;;
+			3)
+				manualConfigMenu shell
+				;;
+			8)
+				cleanMenu
+				;;
+			9)
+				verboseMode
+				;;
+			0)
+				exit 0
+				;;
+			esac
+		done
+	fi
 }
 
-main
+main "$@"
