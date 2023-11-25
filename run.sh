@@ -87,7 +87,7 @@ getDepsList() {
 	WRT_MAJOR_VERSION=$(echo "$SELECTED_FIRMWARE_VERSION" | sed -E 's/v([0-9]+).*/\1/')
 
 	case $SELECTED_FIRMWARE in
-	"OPENWRT")
+	"openwrt")
 		if [[ "$SELECTED_FIRMWARE_VERSION" == "master" || "$WRT_MAJOR_VERSION" -ge 21 ]]; then
 			echo "Setting dependencies for OpenWRT 21.x.x and above..."
 			SELECTED_FIRMWARE_DEPS="$OPENWRT_CURRENT_DEPENDENCIES"
@@ -96,7 +96,7 @@ getDepsList() {
 			SELECTED_FIRMWARE_DEPS="$OPENWRT_OLD_DEPENDENCIES"
 		fi
 		;;
-	"LIBRECMC")
+	"librecmc")
 		echo "Setting dependencies for LibreCMC..."
 		SELECTED_FIRMWARE_DEPS="$LIBRECMC_CURRENT_DEPENDENCIES"
 		;;
