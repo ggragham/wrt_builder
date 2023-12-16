@@ -32,7 +32,7 @@ Welcome to the **WRT Builder**, a comprehensive, Dockerized solution designed to
 ## Devices
 The script supports a variety of devices. Below is a list of supported devices along with links to their respective info within the repository:
 
-- **TP-link TL-WR841N (v8/v9) 4mb**:
+- **TP-link TL-WR841N/ND v8/v9 (4mb flash)**:
   - [OpenWRT](./config/tl_wr841nd_v8_v9_4mb/openwrt/README.md)
   - [LibreCMC](./config/tl_wr841nd_v8_v9_4mb/librecmc/README.md)
 
