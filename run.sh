@@ -1,32 +1,37 @@
 #!/usr/bin/env bash
 
+# Change current directory to the script's directory
 cd "$(dirname "$0")" || exit "$?"
 
-BUILD_ENV_PATH="./build.env"
-SCRIPT_PATH="./build.sh"
-OUTPUT_DIR="./output"
-CONFIG_DIR="./config"
+# Define constants
+readonly BUILD_ENV_PATH="./build.env"
+readonly SCRIPT_PATH="./build.sh"
+readonly OUTPUT_DIR="./output"
+readonly CONFIG_DIR="./config"
+readonly DOCKER_BUILD_PATH="/home/build/wrt"
+readonly OUTPUT_VOLUME="$OUTPUT_DIR:$DOCKER_BUILD_PATH/output_dir"
+readonly BUILD_SCRIPT_VOLUME="$SCRIPT_PATH:$DOCKER_BUILD_PATH/$SCRIPT_PATH"
+
+# Define variables
 SELECTED_DEVICE=""
 SELECTED_FIRMWARE=""
 SELECTED_FIRMWARE_REPO=""
 SELECTED_FIRMWARE_VERSION=""
 SELECTED_FIRMWARE_DEPS=""
-DOCKER_BUILD_PATH="/home/build/wrt"
+DOCKER_TAG=""
 CACHE_VOLUME=""
 CONFIG_VOLUME=""
-OUTPUT_VOLUME="$OUTPUT_DIR:$DOCKER_BUILD_PATH/output_dir"
-BUILD_SCRIPT_VOLUME="$SCRIPT_PATH:$DOCKER_BUILD_PATH/$SCRIPT_PATH"
 SET_CLEAN_LEVEL=""
 PRINT_CLEAN_LEVEL=""
 SET_VERBOSE_STATUS=""
 PRINT_VERBOSE_STATUS=""
 
-# Text format.
-NORMAL='\033[0m'
-BOLD='\033[1m'
-BLUE='\033[1;34m'
-LIGHTBLUE='\033[1;94m'
-LIGHTRED='\033[0;91m'
+# Text format variables
+readonly NORMAL='\033[0m'
+readonly BOLD='\033[1m'
+readonly BLUE='\033[1;34m'
+readonly LIGHTBLUE='\033[1;94m'
+readonly LIGHTRED='\033[0;91m'
 
 source "$BUILD_ENV_PATH"
 
@@ -77,21 +82,25 @@ printNonUrgentText() {
 	echo -e "${BOLD}$value${NORMAL}"
 }
 
+# Get dependencies list based on firmware and version.
 getDepsList() {
-	WRT_MAJOR_VERSION=$(echo "$SELECTED_FIRMWARE_VERSION" | sed -E 's/.*-([0-9]+)\..*/\1/')
+	WRT_MAJOR_VERSION=$(echo "$SELECTED_FIRMWARE_VERSION" | sed -E 's/v([0-9]+).*/\1/')
 
-	if [[ $SELECTED_FIRMWARE == "OPENWRT" ]]; then
+	case $SELECTED_FIRMWARE in
+	"openwrt")
 		if [[ "$SELECTED_FIRMWARE_VERSION" == "master" || "$WRT_MAJOR_VERSION" -ge 21 ]]; then
 			echo "Setting dependencies for OpenWRT 21.x.x and above..."
 			SELECTED_FIRMWARE_DEPS="$OPENWRT_CURRENT_DEPENDENCIES"
-		elif [[ "$WRT_MAJOR_VERSION" -le 19 && "$SELECTED_FIRMWARE_VERSION" != "master" ]]; then
+		else
 			echo "Setting dependencies for OpenWRT 19.x.x and below..."
 			SELECTED_FIRMWARE_DEPS="$OPENWRT_OLD_DEPENDENCIES"
 		fi
-	elif [[ $SELECTED_FIRMWARE == "LIBRECMC" ]]; then
+		;;
+	"librecmc")
 		echo "Setting dependencies for LibreCMC..."
 		SELECTED_FIRMWARE_DEPS="$LIBRECMC_CURRENT_DEPENDENCIES"
-	fi
+		;;
+	esac
 }
 
 dockerBuild() {
@@ -101,14 +110,14 @@ dockerBuild() {
 		--build-arg WRT_DEPENDENCIES="$SELECTED_FIRMWARE_DEPS" \
 		--build-arg WRT_FIRMWARE_REPO="$SELECTED_FIRMWARE_REPO" \
 		--build-arg WRT_BRANCH="$SELECTED_FIRMWARE_VERSION" \
-		-t "${SELECTED_FIRMWARE,,}_${SELECTED_FIRMWARE_VERSION,,}" .
+		-t "$DOCKER_TAG" .
 }
 
 cockerRun() {
 	local dockerArg="$1"
 	CACHE_VOLUME="${SELECTED_FIRMWARE}_${SELECTED_FIRMWARE_VERSION}_cache_volume:$DOCKER_BUILD_PATH"
 	# Mount root of config dir when $SELECTED_DEVICE is empty is a feature (. ❛ ᴗ ❛.)
-	CONFIG_VOLUME="$CONFIG_DIR/$SELECTED_DEVICE:$DOCKER_BUILD_PATH/device_config"
+	CONFIG_VOLUME="$CONFIG_DIR/$SELECTED_DEVICE/$SELECTED_FIRMWARE:$DOCKER_BUILD_PATH/device_config"
 
 	docker run -it \
 		-e GET_CLEAN_LEVEL="$SET_CLEAN_LEVEL" \
@@ -117,7 +126,7 @@ cockerRun() {
 		-v "$CACHE_VOLUME" \
 		-v "$OUTPUT_VOLUME" \
 		-v "$CONFIG_VOLUME" \
-		"${SELECTED_FIRMWARE,,}_${SELECTED_FIRMWARE_VERSION,,}" "$dockerArg"
+		"$DOCKER_TAG" "$dockerArg"
 }
 
 makeBuild() {
@@ -129,42 +138,92 @@ makeBuild() {
 }
 
 firmwareMenu() {
-	getVersion() {
-		local firmwareDir="$1"
-		source "$CONFIG_DIR/$firmwareDir/version.env"
-		SELECTED_FIRMWARE="$FIRMWARE_NAME"
-		SELECTED_FIRMWARE_REPO="$FIRMWARE_REPO"
-		SELECTED_FIRMWARE_VERSION="$FIRMWARE_BRANCH"
+	# Select the directory containing the firmware configuration
+	selectDir() {
+		# Loop continues until a file named "versions" is found in the directory
+		while [ ! -f "$dirPath/versions" ]; do
+			dirList=("$dirPath"/*)
+
+			printHeader
+			# Display all directories as menu items
+			for i in "${!dirList[@]}"; do
+				menuItem "$((i + 1))" "$(basename "${dirList[i]}/")"
+			done
+			echo
+			menuItem "0" "Back"
+			echo
+
+			read -rp "> " select
+
+			# Validate selection is a number and within the available options.
+			if [[ "$select" =~ ^[0-9]+$ ]]; then
+				# If the selection is within the range of the directory list,
+				# update the directory path to the selected directory
+				if ((select >= 1)) && ((select <= ${#dirList[@]})); then
+					dirPath="${dirList[$((select - 1))]}"
+
+				# If the selection is 0 and the current directory is the config directory,
+				# exit the function with return code 2
+				elif ((select == 0)) && [ "$dirPath" == "$CONFIG_DIR" ]; then
+					return 2
+
+				# If the selection is 0 and the current directory is not the config directory,
+				# go up one level in the directory path
+				elif ((select == 0)); then
+					dirPath=$(dirname "$dirPath")
+					continue
+				fi
+			fi
+		done
 	}
 
-	local firmwareDirs=""
-	local selectedFirmware=""
-	firmwareDirs=(./config/*) # Get dir list.
+	local dirPath="$CONFIG_DIR"
+	local dirList
+	local selectedVersion
+	local versions=()
 
+	if ! selectDir; then
+		return "$?"
+	fi
+
+	# Read avaliable firmware version from file
+	local versionsFile="$dirPath/versions"
+	while IFS= read -r line; do
+		versions+=("$line")
+	done <"$versionsFile"
+
+	# Select avaliable firmware version
 	while :; do
 		printHeader
-		for i in "${!firmwareDirs[@]}"; do
-			menuItem "$(("$i" + 1))" "${firmwareDirs[$i]#./config/}"
+		# Display all versions as menu items
+		for i in "${!versions[@]}"; do
+			menuItem "$((i + 1))" "${versions[i]}"
 		done
 		echo
-		menuItem "0" "Back"
+		menuItem "0" "Main Menu"
 		echo
 
 		read -rp "> " select
 		# Validate selection is a number and within the available options.
 		if [[ "$select" =~ ^[0-9]+$ ]]; then
-			if ((select >= 1)) && ((select <= ${#firmwareDirs[@]})); then
-				# Set chosen dir to variable.
-				selectedFirmware="${firmwareDirs[$((select - 1))]##*/}"
-				SELECTED_DEVICE="$selectedFirmware"
-				if getVersion "$SELECTED_DEVICE"; then
-					makeBuild preconfig
-				fi
-			elif ((choice == 0)); then
-				return 42
+			# If the selection is within the range of the versions list,
+			# set the selected version and other related variables,
+			# then call the makeBuild function with the "preconfig" argument
+			if ((select >= 1)) && ((select <= ${#versions[@]})); then
+				selectedVersion="${versions[$((select - 1))]}"
+				source "$dirPath/firmware.env"
+				SELECTED_DEVICE="$DEVICE_NAME"
+				SELECTED_FIRMWARE="$FIRMWARE_NAME"
+				SELECTED_FIRMWARE_REPO="$FIRMWARE_REPO"
+				SELECTED_FIRMWARE_VERSION="$selectedVersion"
+				DOCKER_TAG="$(echo "$SELECTED_FIRMWARE" | tr '[:upper:]' '[:lower:]')_$(echo "$SELECTED_FIRMWARE_VERSION" | tr '[:upper:]' '[:lower:]')"
+				makeBuild preconfig
+
+			# If the selection is 0, return to the main menu
+			# Feature not a bug (´• ω •`)
+			elif ((select == 0)); then
+				return 0
 			fi
-		else
-			continue
 		fi
 	done
 }
@@ -188,23 +247,21 @@ manualConfigMenu() {
 			printHeader
 			# List firmware versions.
 			for i in "${!OPENWRT_VERSIONS[@]}"; do
-				menuItem "$(("$i" + 1))" "${OPENWRT_VERSIONS[$i]}"
+				menuItem "$((i + 1))" "${OPENWRT_VERSIONS[$i]}"
 			done
 			echo
 			menuItem "0" "Back"
 			echo
 
-			read -rp "> " choice
+			read -rp "> " select
 			# Validate selection is a number and within the available options.
-			if [[ "$choice" =~ ^[0-9]+$ ]]; then
-				if ((choice >= 1)) && ((choice <= ${#OPENWRT_VERSIONS[@]})); then
-					SELECTED_FIRMWARE_VERSION="${OPENWRT_VERSIONS[$((choice - 1))]}" # Set the selected version.
+			if [[ "$select" =~ ^[0-9]+$ ]]; then
+				if ((select >= 1)) && ((select <= ${#OPENWRT_VERSIONS[@]})); then
+					SELECTED_FIRMWARE_VERSION="${OPENWRT_VERSIONS[$((select - 1))]}" # Set the selected version.
 					makeBuild "$arg"
-				elif ((choice == 0)); then
-					return 42
+				elif ((select == 0)); then
+					return 2
 				fi
-			else
-				continue
 			fi
 		done
 	}
@@ -239,6 +296,7 @@ manualConfigMenu() {
 	done
 }
 
+# Select the level of cleaning to be performed.
 cleanMenu() {
 	while :; do
 		printHeader
@@ -311,40 +369,98 @@ main() {
 	SET_VERBOSE_STATUS="off"
 	PRINT_VERBOSE_STATUS="$(printNonUrgentText $SET_VERBOSE_STATUS)"
 
-	while :; do
-		printHeader
-		menuItem "1" "Select device config"
-		menuItem "2" "Manual config"
-		menuItem "3" "Enter container shell"
-		echo
-		menuItem "8" "Clean level: $PRINT_CLEAN_LEVEL"
-		menuItem "9" "Verbose mode: $PRINT_VERBOSE_STATUS"
-		echo
-		menuItem "0" "Quit"
-		echo
+	# Check if arguments are provided.
+	if [ $# -gt 0 ]; then
+		# Loop to process command line arguments.
+		while (("$#")); do
+			case "$1" in
+			-d | --device)
+				if [ -n "$2" ] && [ "${2:0:1}" != "-" ]; then
+					SELECTED_DEVICE=$2
+					shift 2
+				else
+					echo "Error: Argument for $1 is missing" >&2
+					exit 1
+				fi
+				;;
+			-f | --firmware)
+				if [ -n "$2" ] && [ "${2:0:1}" != "-" ]; then
+					SELECTED_FIRMWARE=$2
+					shift 2
+				else
+					echo "Error: Argument for $1 is missing" >&2
+					exit 1
+				fi
+				;;
+			-v | --version)
+				if [ -n "$2" ] && [ "${2:0:1}" != "-" ]; then
+					SELECTED_FIRMWARE_VERSION=$2
+					shift 2
+				else
+					echo "Error: Argument for $1 is missing" >&2
+					exit 1
+				fi
+				;;
+			--* | -*=) # Unsupported flags.
+				echo "Error: Unsupported flag $1" >&2
+				exit 1
+				;;
+			*) # Preserve positional arguments.
+				PARAMS="$PARAMS $1"
+				shift
+				;;
+			esac
+		done
 
-		read -rp "> " select
-		case "$select" in
-		1)
-			firmwareMenu
-			;;
-		2)
-			manualConfigMenu manual
-			;;
-		3)
-			manualConfigMenu shell
-			;;
-		8)
-			cleanMenu
-			;;
-		9)
-			verboseMode
-			;;
-		0)
-			exit 0
-			;;
-		esac
-	done
+		# Set positional arguments in their proper place.
+		eval set -- "$PARAMS"
+
+		# Check if all flags were provided.
+		if [ -z "$SELECTED_DEVICE" ] || [ -z "$SELECTED_FIRMWARE" ] || [ -z "$SELECTED_FIRMWARE_VERSION" ]; then
+			echo "Error: You must provide all flags (-d, -f, -v)" >&2
+			exit 1
+		fi
+
+		source "$CONFIG_DIR/$SELECTED_DEVICE/$SELECTED_FIRMWARE/firmware.env"
+		SELECTED_FIRMWARE_REPO="$FIRMWARE_REPO"
+		DOCKER_TAG="$(echo "$SELECTED_FIRMWARE" | tr '[:upper:]' '[:lower:]')_$(echo "$SELECTED_FIRMWARE_VERSION" | tr '[:upper:]' '[:lower:]')"
+		makeBuild preconfig
+	else
+		while :; do
+			printHeader
+			menuItem "1" "Select device config"
+			menuItem "2" "Manual config"
+			menuItem "3" "Enter container shell"
+			echo
+			menuItem "8" "Clean level: $PRINT_CLEAN_LEVEL"
+			menuItem "9" "Verbose mode: $PRINT_VERBOSE_STATUS"
+			echo
+			menuItem "0" "Quit"
+			echo
+
+			read -rp "> " select
+			case "$select" in
+			1)
+				firmwareMenu
+				;;
+			2)
+				manualConfigMenu manual
+				;;
+			3)
+				manualConfigMenu shell
+				;;
+			8)
+				cleanMenu
+				;;
+			9)
+				verboseMode
+				;;
+			0)
+				exit 0
+				;;
+			esac
+		done
+	fi
 }
 
-main
+main "$@"
