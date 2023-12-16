@@ -1,7 +1,9 @@
 # TP-Link TL-WR841N/ND v8/9 (4mb flash)
 
 ## LibreCMC
-Version (branch): 1.5.13 (LTS)
+Supported Versions:
+  - LTS
+  - v1.5.13
 
 ## Config
 ### Added:
